@@ -1,8 +1,14 @@
 #!/bin/sh
-# Crea los topics de la biblioteca. Se puede ejecutar varias veces.
+# Crea los topics de la biblioteca (L9, calco del punto 7 de la Guia de la EP3). Se puede correr las veces que
+# haga falta: --if-not-exists no toca un topic que ya existe.
+# Uso, desde la carpeta del compose.yml (macOS, Linux o Git Bash en Windows):
+#   sh kafka/topics.sh
+# En la nube, en mq-1, desde la carpeta de mq-compose.yml (el servicio se llama broker):
+#   sudo SERVICIO=broker BOOTSTRAP=10.0.21.11:9092 sh topics.sh
+
 set -eu
 
-# Evita que Git Bash transforme las rutas /opt/... de los contenedores.
+# Git Bash convierte /opt/... en una ruta de Windows antes de pasarla a docker. Esto lo evita.
 export MSYS_NO_PATHCONV=1
 
 SERVICIO="${SERVICIO:-broker-1}"

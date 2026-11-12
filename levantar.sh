@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# levantar.sh - levanta Kafka, RabbitMQ, Postgres y los servicios de la biblioteca.
-# Uso en Git Bash: bash levantar.sh
+# levantar.sh - un comando que levanta todo el sistema de la biblioteca: Kafka, RabbitMQ, Postgres y los
+# siete servicios, todo en contenedores. Supone que los ocho repositorios estan clonados uno al lado del
+# otro, sin el sufijo -l9:
+#   carpeta/
+#     biblioteca-plataforma/   <- aqui va este script
+#     biblioteca-prestamos/, biblioteca-eventos/, biblioteca-gateway/, ...
+# Uso, en bash (Git Bash en Windows):  bash levantar.sh
 set -euo pipefail
 cd "$(dirname "$0")"
 RAIZ="$(cd .. && pwd)"
 
-# 1. Crear los .env faltantes desde sus ejemplos y detectar valores vacíos.
+# 1 - Los .env desde los .env.example, solo donde no existen. Son los seis que lee el compose.
 REPOS="biblioteca-plataforma biblioteca-gateway biblioteca-bff biblioteca-prestamos biblioteca-eventos biblioteca-admin"
 for repo in $REPOS; do
   if [ ! -f "$RAIZ/$repo/.env" ]; then
@@ -13,7 +18,7 @@ for repo in $REPOS; do
     echo "creado $repo/.env desde .env.example"
   fi
 done
-
+# Con un valor en blanco el servicio arranca mal y el error aparece lejos de la causa: se corta aqui.
 faltan=0
 for repo in $REPOS; do
   for nombre in $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=[[:space:]]*$' "$RAIZ/$repo/.env" | cut -d= -f1); do
@@ -26,15 +31,17 @@ if [ "$faltan" -eq 1 ]; then
   exit 1
 fi
 
-# 2. Los topics deben existir antes de arrancar el consumidor de eventos.
+# 2 - El cluster de Kafka, esperando a que los brokers esten healthy, y sus topics (no falla si ya existen).
+#     Van antes que los servicios: eventos lee los topics al arrancar y el cluster no crea topics al vuelo.
 docker compose up -d --wait broker-1 broker-2 broker-3
 sh kafka/topics.sh > /dev/null
 echo "topics listos: biblioteca.prestamos, biblioteca.lecturas y sus .dlt"
 
-# 3. Construir y arrancar todos los servicios.
+# 3 - Todo lo demas: construye las imagenes y espera a que cada servicio quede healthy.
 docker compose up -d --build --wait
 
-# 4. Comprobar las respuestas HTTP. Un 401 indica que un servicio protegido está vivo.
+# 4 - Como se comprueba que quedo arriba: cada servicio responde. Los que exigen token responden 401,
+#     y un 401 es un servicio vivo.
 fallas=0
 comprobar() {
   esperado=$1

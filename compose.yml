@@ -13,6 +13,8 @@ x-controller-env: &controller-env
   KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
   KAFKA_LOG_DIRS: /var/lib/kafka/data
   KAFKA_HEAP_OPTS: -Xms256m -Xmx256m
+  # Con KRaft el controller fija el min.insync.replicas por defecto de todo el clúster con su propio
+  # valor (1 si no se dice). Sin esta línea, __consumer_offsets y todo topic creado sin la config quedan con 1.
   KAFKA_MIN_INSYNC_REPLICAS: 2
 
 x-broker-env: &broker-env
@@ -24,9 +26,11 @@ x-broker-env: &broker-env
   KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller-1:9093,2@controller-2:9093,3@controller-3:9093
   KAFKA_LOG_DIRS: /var/lib/kafka/data
   KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+  # Los topics se crean desde kafka/topics.sh, nunca al vuelo.
   KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
   KAFKA_DEFAULT_REPLICATION_FACTOR: 3
   KAFKA_MIN_INSYNC_REPLICAS: 2
+  # Topics internos con 3 copias (el ejemplo oficial trae 1).
   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
   KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
   KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
